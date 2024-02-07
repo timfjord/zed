@@ -4361,6 +4361,76 @@ async fn test_autoclose_pairs(cx: &mut gpui::TestAppContext) {
 }
 
 #[gpui::test]
+async fn test_always_handle_autoclosed_character(cx: &mut gpui::TestAppContext) {
+    init_test(cx, |settings| {
+        settings.defaults.always_handle_autoclosed_character = Some(true);
+    });
+
+    let mut cx = EditorTestContext::new(cx).await;
+    cx.update_editor(|view, _cx| view.set_always_handle_autoclosed_character(true));
+
+    let language = Arc::new(Language::new(
+        LanguageConfig {
+            brackets: BracketPairConfig {
+                pairs: vec![
+                    BracketPair {
+                        start: "{".to_string(),
+                        end: "}".to_string(),
+                        close: true,
+                        newline: true,
+                    },
+                    BracketPair {
+                        start: "(".to_string(),
+                        end: ")".to_string(),
+                        close: true,
+                        newline: true,
+                    },
+                    BracketPair {
+                        start: "/*".to_string(),
+                        end: " */".to_string(),
+                        close: true,
+                        newline: true,
+                    },
+                    BracketPair {
+                        start: "[".to_string(),
+                        end: "]".to_string(),
+                        close: false,
+                        newline: true,
+                    },
+                    BracketPair {
+                        start: "\"".to_string(),
+                        end: "\"".to_string(),
+                        close: true,
+                        newline: false,
+                    },
+                ],
+                ..Default::default()
+            },
+            autoclose_before: "})]".to_string(),
+            ..Default::default()
+        },
+        Some(tree_sitter_rust::language()),
+    ));
+
+    let registry = Arc::new(LanguageRegistry::test());
+    registry.add(language.clone());
+    cx.update_buffer(|buffer, cx| {
+        buffer.set_language_registry(registry);
+        buffer.set_language(Some(language), cx);
+    });
+
+    cx.set_state("ˇ}}}");
+
+    // skip-over multiple closing brackets at multiple cursors
+    cx.update_editor(|view, cx| {
+        view.handle_input("}", cx);
+        view.handle_input("}", cx);
+        view.handle_input("}", cx);
+    });
+    cx.assert_editor_state("}}}ˇ");
+}
+
+#[gpui::test]
 async fn test_autoclose_with_embedded_language(cx: &mut gpui::TestAppContext) {
     init_test(cx, |_| {});
 

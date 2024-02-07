@@ -93,6 +93,8 @@ pub struct LanguageSettings {
     pub inlay_hints: InlayHintSettings,
     /// Whether to automatically close brackets.
     pub use_autoclose: bool,
+    // Controls how the editor behaves when a closing character is typed.
+    pub always_handle_autoclosed_character: bool,
 }
 
 /// The settings for [GitHub Copilot](https://github.com/features/copilot).
@@ -215,6 +217,13 @@ pub struct LanguageSettingsContent {
     ///
     /// Default: true
     pub use_autoclose: Option<bool>,
+    // Controls how the editor behaves when a closing character is typed.
+    // When set to `false`(default), the cusror will be skipped over the closing character
+    // only if it was automatically added before, otherwise(when `true`) the cursor will be
+    // always skipped over the closing character.
+    ///
+    /// Default: false
+    pub always_handle_autoclosed_character: Option<bool>,
 }
 
 /// The contents of the GitHub Copilot settings.
@@ -548,6 +557,10 @@ fn merge_settings(settings: &mut LanguageSettings, src: &LanguageSettingsContent
     merge(&mut settings.hard_tabs, src.hard_tabs);
     merge(&mut settings.soft_wrap, src.soft_wrap);
     merge(&mut settings.use_autoclose, src.use_autoclose);
+    merge(
+        &mut settings.always_handle_autoclosed_character,
+        src.always_handle_autoclosed_character,
+    );
     merge(&mut settings.show_wrap_guides, src.show_wrap_guides);
     merge(&mut settings.wrap_guides, src.wrap_guides.clone());
 

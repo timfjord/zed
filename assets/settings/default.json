@@ -89,6 +89,13 @@
   // Whether to automatically type closing characters for you. For example,
   // when you type (, Zed will automatically add a closing ) at the correct position.
   "use_autoclose": true,
+  // Controls how the editor handles the autoclosed characters.
+  // When set to `false`(default), the cusror will be skipped over the closing character
+  // when the closing character is typed and the autoclosed characters will be removed
+  // when the opening character is removed but only if it was automatically added before.
+  // Otherwise(when `true`), the cursor will be always skipped over the closing character
+  // and the autoclosed characters will be removed.
+  "always_handle_autoclosed_character": false,
   // Controls whether copilot provides suggestion immediately
   // or waits for a `copilot::Toggle`
   "show_copilot_suggestions": true,

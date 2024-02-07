@@ -414,6 +414,7 @@ pub struct Editor {
     editor_actions: Vec<Box<dyn Fn(&mut ViewContext<Self>)>>,
     show_copilot_suggestions: bool,
     use_autoclose: bool,
+    always_handle_autoclosed_character: bool,
     custom_context_menu: Option<
         Box<
             dyn 'static
@@ -1476,6 +1477,7 @@ impl Editor {
             input_enabled: true,
             read_only: false,
             use_autoclose: true,
+            always_handle_autoclosed_character: false,
             leader_peer_id: None,
             remote_id: None,
             hover_state: Default::default(),
@@ -1768,6 +1770,13 @@ impl Editor {
 
     pub fn set_use_autoclose(&mut self, autoclose: bool) {
         self.use_autoclose = autoclose;
+    }
+
+    pub fn set_always_handle_autoclosed_character(
+        &mut self,
+        always_handle_autoclosed_character: bool,
+    ) {
+        self.always_handle_autoclosed_character = always_handle_autoclosed_character;
     }
 
     pub fn set_show_copilot_suggestions(&mut self, show_copilot_suggestions: bool) {
@@ -2332,6 +2341,7 @@ impl Editor {
                 // bracket of any of this language's bracket pairs.
                 let mut bracket_pair = None;
                 let mut is_bracket_pair_start = false;
+                let mut is_bracket_pair_end = false;
                 if !text.is_empty() {
                     // `text` can be empty when a user is using IME (e.g. Chinese Wubi Simplified)
                     //  and they are removing the character that triggered IME popup.
@@ -2342,6 +2352,7 @@ impl Editor {
                             break;
                         } else if pair.end.as_str() == text.as_ref() {
                             bracket_pair = Some(pair.clone());
+                            is_bracket_pair_end = true;
                             break;
                         }
                     }
@@ -2389,6 +2400,19 @@ impl Editor {
                                 brace_inserted = true;
                                 continue;
                             }
+                        }
+
+                        let always_handle_autoclosed_character = self
+                            .always_handle_autoclosed_character
+                            && snapshot
+                                .settings_at(selection.start, cx)
+                                .always_handle_autoclosed_character;
+                        if always_handle_autoclosed_character && is_bracket_pair_end {
+                            // If the inserted text is a closing bracket, then move the selection
+                            // past the closing bracket.
+                            let anchor = snapshot.anchor_after(selection.end);
+                            new_selections.push((selection.map(|_| anchor), text.len()));
+                            continue;
                         }
 
                         if let Some(region) = autoclose_region {
